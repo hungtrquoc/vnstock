@@ -294,7 +294,11 @@ def fetch_vndirect_data(
 
     for attempt in range(max_retries):
         try:
-            resp = requests.get(VNDIRECT_URL, params=params, headers=headers, timeout=30)
+            # timeout = (connect, read) rieng nhau (thay vi 1 so 30s chung) - phat hien
+            # nhanh hon truong hop ket noi bi treo (VD tu Vercel/nuoc ngoai goi ve
+            # VNDIRECT co the bi cham/chan hon tu may nguoi dung o VN) thay vi doi het
+            # ca 30s cho moi lan thu.
+            resp = requests.get(VNDIRECT_URL, params=params, headers=headers, timeout=(5, 20))
             resp.raise_for_status()
             data = resp.json()
             if data.get("s") != "ok" or not data.get("t"):
@@ -322,7 +326,12 @@ def fetch_vndirect_data(
             ]
             df["close"] = df["close"].replace(0, np.nan).ffill()
             return df
-        except Exception:
+        except Exception as e:
+            # in ra loai loi thuc te (VD ConnectTimeout, ReadTimeout, SSLError...) de
+            # xem duoc trong Vercel Logs - truoc day loi bi nuot im lang, khong biet
+            # thuc su la timeout hay bi tu choi ket noi.
+            print(f"[fetch_vndirect_data] {symbol} attempt {attempt + 1}/{max_retries} failed: "
+                  f"{type(e).__name__}: {e}")
             if attempt < max_retries - 1:
                 time.sleep(2 ** attempt)
     # het retry, tra ve rong
