@@ -1,9 +1,10 @@
-# requirements.txt CHO HAM WEB (Vercel), KHONG phai cho ban desktop -
-# xem requirements.txt o goc repo (dung cho main.py/PyQt6). File nay
-# CO Y dat CUNG cap voi api/index.py (khong phai o goc repo) vi Vercel
-# Python runtime uu tien requirements.txt nam trong thu muc cua ham hon
-# requirements.txt o goc - tranh Vercel co gang cai PyQt6 (khong can/kho
-# cai tren serverless Linux) tu requirements.txt cua ban desktop.
+# KHONG duoc Vercel dung - da xac nhan qua tai lieu Vercel chinh thuc
+# (2026-08-06): Vercel Python runtime CHI doc requirements.txt o GOC repo,
+# khong doc file nay du no nam cung cap voi api/index.py. Gia dinh ban dau
+# (uu tien file trong thu muc ham) la SAI - da sua bang cach gop toan bo
+# dependency web (fastapi, psycopg2-binary) vao thang requirements.txt o
+# goc repo. File nay chi giu lai de tham khao danh sach dependency rieng
+# cho web, KHONG anh huong gi den build tren Vercel.
 fastapi>=0.109.0
 pandas>=2.0
 numpy>=1.24

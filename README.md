@@ -62,7 +62,7 @@ Deploy xong, mở `https://<project>.vercel.app/` để dùng.
 
 ### 4. Lưu ý về `requirements.txt`
 
-Có **2 file `requirements.txt` riêng biệt** - đây là điểm dễ nhầm nhất khi gộp chung 1 thư mục: `requirements.txt` ở gốc là cho bản Windows (có PyQt6, không cài được/không cần trên Vercel), `api/requirements.txt` là cho bản web (fastapi/pandas/numpy/matplotlib/psycopg2-binary, không có PyQt6). Theo tài liệu Vercel, requirements.txt nằm cùng cấp với hàm (`api/`) được ưu tiên hơn requirements.txt ở gốc - nhưng **điều này chưa được kiểm chứng thực tế** (chưa có tài khoản Vercel để deploy thử). Nếu build trên Vercel báo lỗi liên quan PyQt6, đây chính là nguyên nhân cần xử lý tiếp.
+**Đã sửa (2026-08-06, xác nhận qua tài liệu Vercel chính thức):** Vercel Python runtime CHỈ đọc `requirements.txt` ở **gốc repo**, không đọc `api/requirements.txt` dù nó nằm cùng cấp với `api/index.py` - giả định ban đầu ("Vercel ưu tiên file cùng cấp với hàm") là **sai**. Đây chính là lý do lần deploy đầu tiên bị `FUNCTION_INVOCATION_FAILED`: `requirements.txt` gốc chỉ có PyQt6/pandas/numpy/matplotlib/requests/openpyxl, thiếu `fastapi`/`psycopg2-binary` nên `api/index.py` không import được. Đã gộp toàn bộ dependency web vào thẳng `requirements.txt` ở gốc (dùng chung 1 file duy nhất mà Vercel thực sự đọc). `api/requirements.txt` vẫn giữ lại chỉ để tham khảo, không ảnh hưởng build.
 
 ## Quan trọng: giới hạn Cron của Vercel và cách vượt qua
 
