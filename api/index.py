@@ -46,7 +46,16 @@ from datetime import datetime, timezone
 # `import analysis_engine`, `import data_manager`... - cac file nay nam
 # ngay tai goc repo (dung chung voi main.py cua ban desktop), khong con
 # trong 1 thu muc backend/ rieng nhu thiet ke ban dau nua.
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+_THIS_DIR = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.dirname(_THIS_DIR))
+# Them CA thu muc api/ chinh nginh (ban than __file__) vao sys.path -
+# BAT BUOC tren Vercel: runtime tai file nay bang importlib.exec_module()
+# (khong phai chay truc tiep "python api/index.py"), nen Python KHONG tu
+# dong them thu muc chua file dang chay vao sys.path nhu binh thuong. Thieu
+# dong nay se bi "ModuleNotFoundError: No module named 'screener_store'"
+# du file api/screener_store.py van nam dung cho, van duoc dong goi day du
+# (da xac nhan qua log Vercel thuc te 2026-08-06) - khong phai loi thieu file.
+sys.path.insert(0, _THIS_DIR)
 
 from fastapi import FastAPI, HTTPException, Request  # noqa: E402
 from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
