@@ -4,9 +4,6 @@
       "maxDuration": 60
     }
   },
-  "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/index.py" }
-  ],
   "crons": [
     { "path": "/api/screener/cron", "schedule": "0 1 * * *" }
   ]

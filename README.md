@@ -22,7 +22,8 @@ VN_StockApp/
 │   ├── index.py             # FastAPI - toàn bộ route /api/* cho bản web
 │   ├── screener_store.py    # Lưu tiến độ quét thị trường vào Postgres - CHỈ web dùng
 │   └── requirements.txt     # Dependency CHO WEB (không có PyQt6)
-├── index.html / analyze.html / screener.html / style.css / app.js   # Frontend tĩnh (web)
+├── public/
+│   └── index.html / analyze.html / screener.html / style.css / app.js   # Frontend tĩnh (web) - PHAI nam trong public/ de Vercel tu serve, khong dat o goc repo
 ├── schema.sql                # Schema Postgres (tham khảo, API tự tạo bảng)
 ├── vercel.json                # Cấu hình Vercel Function + cron
 └── .github/workflows/screener-cron.yml   # GitHub Actions gọi cron nhiều lần/giờ
