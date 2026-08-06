@@ -1,0 +1,123 @@
+/* style.css - dung chung cho 3 trang (index/analyze/screener.html). Toi
+   gian, khong dung framework CSS nao - tranh phu thuoc build step. */
+:root {
+  --border: #dddddd;
+  --bg-card: #ffffff;
+  --text-muted: #666666;
+  --green: #2e7d32;
+  --red: #c62828;
+  --amber: #b7791f;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background: #f5f5f5;
+  color: #1a1a1a;
+  margin: 0;
+  padding: 0;
+}
+
+nav {
+  background: #1a1a1a;
+  padding: 0 20px;
+  display: flex;
+  gap: 4px;
+}
+nav a {
+  color: #cccccc;
+  text-decoration: none;
+  padding: 14px 16px;
+  font-size: 14px;
+  border-bottom: 3px solid transparent;
+}
+nav a.active {
+  color: #ffffff;
+  border-bottom-color: #4caf50;
+}
+
+main {
+  max-width: 1000px;
+  margin: 24px auto;
+  padding: 0 16px;
+}
+
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 22px;
+  margin-bottom: 18px;
+}
+
+h1 { font-size: 20px; margin: 0 0 4px; }
+h2 { font-size: 15px; color: var(--text-muted); margin: 18px 0 8px; }
+.subtitle { color: var(--text-muted); font-size: 13px; margin-bottom: 12px; }
+
+.row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; }
+
+input[type=text] {
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 14px;
+  width: 140px;
+  text-transform: uppercase;
+}
+
+button {
+  padding: 8px 14px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: #f0f0f0;
+  cursor: pointer;
+  font-size: 13px;
+}
+button:hover { background: #e5e5e5; }
+button:disabled { opacity: 0.5; cursor: default; }
+button.primary { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
+button.primary:hover { background: #333; }
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+th, td {
+  border-bottom: 1px solid #eeeeee;
+  padding: 7px 8px;
+  text-align: right;
+}
+th:first-child, td:first-child { text-align: left; }
+th { color: var(--text-muted); font-weight: 600; background: #fafafa; }
+tr:hover { background: #fafafa; }
+
+.verdict-box {
+  background: #f7f7f7;
+  border: 1px solid #e5e5e5;
+  border-radius: 6px;
+  padding: 10px 12px;
+  margin: 10px 0;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.pos { color: var(--green); }
+.neg { color: var(--red); }
+.amber { color: var(--amber); }
+
+.muted { color: var(--text-muted); font-size: 12px; }
+.log {
+  font-family: monospace;
+  font-size: 12px;
+  background: #fafafa;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 10px;
+  max-height: 140px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+}
+img.chart { max-width: 100%; border-radius: 8px; margin-top: 10px; }
+.checkline label { margin-right: 14px; font-size: 13px; }

@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Quét toàn thị trường - VN Stock Analysis</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<nav>
+  <a href="index.html">Dữ liệu</a>
+  <a href="analyze.html">Phân tích kỹ thuật</a>
+  <a href="screener.html" class="active">Quét toàn thị trường</a>
+</nav>
+<main>
+  <div class="card">
+    <h1>Quét toàn thị trường</h1>
+    <div class="subtitle">
+      Bản web KHÔNG quét "tức thì" như bản Windows - quét toàn bộ ~1000-1700+ mã diễn ra NỀN, theo
+      từng lô nhỏ (xem README phần Cron), có thể mất vài giờ mỗi vòng. Trang này hiển thị KẾT QUẢ
+      CỦA LẦN QUÉT GẦN NHẤT đã lưu, không phải quét ngay khi bấm.
+    </div>
+    <div class="row" id="progressRow"></div>
+    <div class="row checkline">
+      <label><input type="checkbox" id="chkPositive" checked /> Tích cực</label>
+      <label><input type="checkbox" id="chkNeutral" checked /> Trung lập</label>
+      <label><input type="checkbox" id="chkNegative" checked /> Tiêu cực</label>
+      <label><input type="checkbox" id="chkUnrated" /> Chưa đánh giá (lỗi/thiếu dữ liệu)</label>
+      <label><input type="checkbox" id="chkStatOnly" /> Chỉ hiện mã đáng tin thống kê (k-NN)</label>
+    </div>
+    <div class="row">
+      <button class="primary" id="btnRefresh">Tải lại kết quả</button>
+      <button id="btnExport">💾 Xuất CSV</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <table>
+      <thead><tr><th>Mã</th><th>Thuần kỹ thuật</th><th>Đáng tin & tích cực</th><th>Ghi chú</th></tr></thead>
+      <tbody id="resultsBody"><tr><td colspan="4" class="muted">Đang tải...</td></tr></tbody>
+    </table>
+  </div>
+</main>
+<script src="app.js"></script>
+<script>
+let currentRows = [];
+
+function buildQuery() {
+  const p = new URLSearchParams();
+  p.set("positive", document.getElementById("chkPositive").checked);
+  p.set("neutral", document.getElementById("chkNeutral").checked);
+  p.set("negative", document.getElementById("chkNegative").checked);
+  p.set("unrated", document.getElementById("chkUnrated").checked);
+  p.set("stat_only", document.getElementById("chkStatOnly").checked);
+  return p.toString();
+}
+
+function renderRows(rows) {
+  currentRows = rows;
+  const body = document.getElementById("resultsBody");
+  if (!rows.length) {
+    body.innerHTML = `<tr><td colspan="4" class="muted">Không có mã nào khớp bộ lọc (hoặc chưa quét lần nào).</td></tr>`;
+    return;
+  }
+  body.innerHTML = rows.map(r => {
+    const classicTxt = r.classic_verdict || "—";
+    const classicCls = r.classic_positive ? "pos" : "";
+    let statTxt = "—";
+    let statCls = "";
+    if (r.stat_positive) {
+      statTxt = `✓ ${r.stat_best_horizon} phiên (hit ${(r.stat_best_hit_rate * 100).toFixed(0)}%, p=${r.stat_best_pvalue.toFixed(2)})`;
+      statCls = "pos";
+    }
+    const noteCls = r.status === "error" ? "neg" : "";
+    return `<tr>
+      <td style="text-align:left">${r.symbol}</td>
+      <td class="${classicCls}">${classicTxt}</td>
+      <td class="${statCls}">${statTxt}</td>
+      <td class="${noteCls}" style="text-align:left">${r.status !== "ok" ? (r.message || "") : ""}</td>
+    </tr>`;
+  }).join("");
+}
+
+async function loadResults() {
+  document.getElementById("resultsBody").innerHTML = `<tr><td colspan="4" class="muted">Đang tải...</td></tr>`;
+  try {
+    const data = await apiGet(`/api/screener/results?${buildQuery()}`);
+    renderRows(data.rows);
+    const p = data.progress;
+    const progressRow = document.getElementById("progressRow");
+    if (p.total_symbols) {
+      const pct = ((p.cursor_pos / p.total_symbols) * 100).toFixed(0);
+      progressRow.innerHTML = `<span class="muted">Tiến độ vòng quét hiện tại: ${p.cursor_pos}/${p.total_symbols} mã (${pct}%)` +
+        (p.round_completed_at ? ` · vòng gần nhất hoàn tất lúc ${p.round_completed_at}` : ` · đang quét...`) + `</span>`;
+    } else {
+      progressRow.innerHTML = `<span class="muted">Chưa có lần quét nào - chờ cron chạy lần đầu (xem README).</span>`;
+    }
+  } catch (e) {
+    document.getElementById("resultsBody").innerHTML = `<tr><td colspan="4" class="neg">Lỗi: ${e.message}</td></tr>`;
+  }
+}
+
+document.getElementById("btnRefresh").onclick = loadResults;
+for (const id of ["chkPositive", "chkNeutral", "chkNegative", "chkUnrated", "chkStatOnly"]) {
+  document.getElementById(id).addEventListener("change", loadResults);
+}
+
+document.getElementById("btnExport").onclick = () => {
+  if (!currentRows.length) { alert("Chưa có dữ liệu để xuất."); return; }
+  const headers = ["Mã", "Thuần kỹ thuật", "Đáng tin & tích cực", "Ghi chú"];
+  const rows = currentRows.map(r => [
+    r.symbol,
+    r.classic_verdict || "",
+    r.stat_positive ? `${r.stat_best_horizon} phiên (hit ${(r.stat_best_hit_rate * 100).toFixed(0)}%, p=${r.stat_best_pvalue.toFixed(2)})` : "",
+    r.status !== "ok" ? (r.message || "") : "",
+  ]);
+  downloadCsv(`quet_thi_truong_${new Date().toISOString().slice(0, 10)}.csv`, headers, rows);
+};
+
+loadResults();
+</script>
+</body>
+</html>

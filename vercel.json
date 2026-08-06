@@ -1,0 +1,14 @@
+{
+  "functions": {
+    "api/index.py": {
+      "maxDuration": 60,
+      "includeFiles": "*.py"
+    }
+  },
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api/index.py" }
+  ],
+  "crons": [
+    { "path": "/api/screener/cron", "schedule": "0 1 * * *" }
+  ]
+}

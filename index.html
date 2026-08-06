@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Dữ liệu - VN Stock Analysis</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<nav>
+  <a href="index.html" class="active">Dữ liệu</a>
+  <a href="analyze.html">Phân tích kỹ thuật</a>
+  <a href="screener.html">Quét toàn thị trường</a>
+</nav>
+<main>
+  <div class="card">
+    <h1>Dữ liệu giá cổ phiếu</h1>
+    <div class="subtitle">Nhập mã cổ phiếu, cập nhật dữ liệu (thông minh: full pull nếu chưa có, incremental nếu đã có), hoặc kéo lại toàn bộ.</div>
+    <div class="row">
+      <input type="text" id="ticker" placeholder="VD: FPT, VNM, HPG" />
+      <button class="primary" id="btnUpdate">Cập nhật dữ liệu</button>
+      <button id="btnFullRefresh">Kéo lại toàn bộ (chia cổ tức)</button>
+      <button id="btnLoad">Xem dữ liệu đã lưu</button>
+    </div>
+    <div class="log" id="log">Sẵn sàng.</div>
+  </div>
+
+  <div class="card">
+    <h2>Dữ liệu gần nhất (20 dòng cuối)</h2>
+    <table>
+      <thead><tr><th>Ngày</th><th>Mở</th><th>Cao</th><th>Thấp</th><th>Đóng</th><th>Khối lượng</th></tr></thead>
+      <tbody id="previewBody"><tr><td colspan="6" class="muted">Chưa có dữ liệu.</td></tr></tbody>
+    </table>
+  </div>
+</main>
+<script src="app.js"></script>
+<script>
+const logEl = document.getElementById("log");
+function log(msg) { logEl.textContent += "\n" + msg; logEl.scrollTop = logEl.scrollHeight; }
+
+function getSymbol() {
+  const s = document.getElementById("ticker").value.trim().toUpperCase();
+  if (!s) { alert("Vui lòng nhập mã cổ phiếu."); return null; }
+  return s;
+}
+
+async function renderPreview(symbol) {
+  const data = await apiGet(`/api/symbols/${symbol}/preview?n=20`);
+  const body = document.getElementById("previewBody");
+  if (!data.rows.length) {
+    body.innerHTML = `<tr><td colspan="6" class="muted">Chưa có dữ liệu cho ${symbol}.</td></tr>`;
+    return;
+  }
+  body.innerHTML = data.rows.map(r => `
+    <tr>
+      <td style="text-align:left">${r.date}</td>
+      <td>${r.open?.toFixed(2) ?? ""}</td>
+      <td>${r.high?.toFixed(2) ?? ""}</td>
+      <td>${r.low?.toFixed(2) ?? ""}</td>
+      <td>${r.close?.toFixed(2) ?? ""}</td>
+      <td>${r.volume ?? ""}</td>
+    </tr>`).join("");
+}
+
+document.getElementById("btnUpdate").onclick = async () => {
+  const symbol = getSymbol();
+  if (!symbol) return;
+  log(`Đang cập nhật dữ liệu cho ${symbol}...`);
+  try {
+    const r = await apiPost(`/api/symbols/${symbol}/update`);
+    log(r.message);
+    await renderPreview(symbol);
+  } catch (e) { log("LỖI: " + e.message); }
+};
+
+document.getElementById("btnFullRefresh").onclick = async () => {
+  const symbol = getSymbol();
+  if (!symbol) return;
+  if (!confirm(`Kéo lại TOÀN BỘ dữ liệu cho ${symbol}? Dữ liệu cũ sẽ bị xóa và tải lại từ đầu.`)) return;
+  log(`Đang kéo lại toàn bộ dữ liệu cho ${symbol}...`);
+  try {
+    const r = await apiPost(`/api/symbols/${symbol}/update?full=true`);
+    log(r.message);
+    await renderPreview(symbol);
+  } catch (e) { log("LỖI: " + e.message); }
+};
+
+document.getElementById("btnLoad").onclick = async () => {
+  const symbol = getSymbol();
+  if (!symbol) return;
+  try { await renderPreview(symbol); } catch (e) { log("LỖI: " + e.message); }
+};
+</script>
+</body>
+</html>

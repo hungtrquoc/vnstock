@@ -1,0 +1,32 @@
+# .github/workflows/screener-cron.yml
+#
+# Vercel Cron tren goi Hobby (mien phi) CHI cho phep chay 1 lan/ngay - qua
+# cham de quet het ~1000-1700+ ma (moi lan /api/screener/cron chi quet 1 lo
+# ~30 ma, xem api/index.py). Workflow nay dung GitHub Actions (mien phi cho
+# repo public, co han muc phut/thang cho repo private) nhu 1 "chuong reo
+# ngoai" goi thang endpoint /api/screener/cron nhieu lan/gio - VAN LA Vercel
+# lam toan bo viec tinh toan/luu DB, GitHub Actions chi dong vai tro bam nut
+# ho dinh ky, khong chay code phan tich gi ca.
+#
+# Thiet lap (xem README.md muc "Kich hoat quet nhieu lan/gio"):
+#   1. Vao GitHub repo -> Settings -> Secrets and variables -> Actions
+#   2. Them 2 secret: VERCEL_APP_URL (vd https://ten-project.vercel.app)
+#      va CRON_SECRET (PHAI GIONG voi CRON_SECRET da dat trong Vercel env vars)
+#   3. Push file nay len - GitHub tu chay theo schedule ben duoi.
+
+name: Quét toàn thị trường (batch cron)
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"   # moi 10 phut - co the chinh lai (vd */5 cho nhanh hon, */30 cho nhe hon)
+  workflow_dispatch: {}       # cho phep bam "Run workflow" chay tay tu tab Actions de test
+
+jobs:
+  trigger-cron:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Gọi /api/screener/cron
+        run: |
+          curl -sS -X GET \
+            "${{ secrets.VERCEL_APP_URL }}/api/screener/cron?batch_size=30&secret=${{ secrets.CRON_SECRET }}" \
+            -w "\nHTTP status: %{http_code}\n"

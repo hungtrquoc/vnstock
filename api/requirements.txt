@@ -1,0 +1,12 @@
+# requirements.txt CHO HAM WEB (Vercel), KHONG phai cho ban desktop -
+# xem requirements.txt o goc repo (dung cho main.py/PyQt6). File nay
+# CO Y dat CUNG cap voi api/index.py (khong phai o goc repo) vi Vercel
+# Python runtime uu tien requirements.txt nam trong thu muc cua ham hon
+# requirements.txt o goc - tranh Vercel co gang cai PyQt6 (khong can/kho
+# cai tren serverless Linux) tu requirements.txt cua ban desktop.
+fastapi>=0.109.0
+pandas>=2.0
+numpy>=1.24
+requests>=2.31
+matplotlib>=3.7
+psycopg2-binary>=2.9

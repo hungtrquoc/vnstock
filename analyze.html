@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Phân tích kỹ thuật - VN Stock Analysis</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<nav>
+  <a href="index.html">Dữ liệu</a>
+  <a href="analyze.html" class="active">Phân tích kỹ thuật</a>
+  <a href="screener.html">Quét toàn thị trường</a>
+</nav>
+<main>
+  <div class="card">
+    <div class="row">
+      <input type="text" id="ticker" placeholder="VD: FPT, VNM, HPG" />
+      <button class="primary" id="btnAnalyze">Chạy phân tích</button>
+    </div>
+    <div class="subtitle">Cần có dữ liệu của mã này và VNINDEX - trang sẽ tự cập nhật trước khi phân tích.</div>
+
+    <h1 id="repTitle">Chưa có kết quả - nhập mã cổ phiếu và bấm "Chạy phân tích".</h1>
+    <div class="subtitle" id="repSubtitle"></div>
+
+    <div class="verdict-box" id="rationaleBox" style="display:none"></div>
+    <div class="verdict-box" id="classicBox" style="display:none"></div>
+
+    <h2>Chi tiết theo khung thời gian (3 / 10 / 20 / 50 phiên)</h2>
+    <table>
+      <thead><tr>
+        <th>Phiên</th><th>Kỳ vọng %</th><th>Giá kỳ vọng</th><th>Dưới %</th><th>Giá dưới</th>
+        <th>Trên %</th><th>Giá trên</th><th>Tin cậy OOT</th><th>Baseline</th><th>p-value</th><th>Số mẫu</th>
+      </tr></thead>
+      <tbody id="metricsBody"><tr><td colspan="11" class="muted">Chưa có dữ liệu.</td></tr></tbody>
+    </table>
+
+    <img class="chart" id="chartImg" style="display:none" />
+  </div>
+</main>
+<script src="app.js"></script>
+<script>
+function sigColor(sig) {
+  if (sig) return "pos";
+  return "";
+}
+
+function renderResult(data) {
+  document.getElementById("repTitle").textContent = `${data.symbol} — Phân tích kỹ thuật`;
+  let sub = `Tính đến ${data.as_of_date} · Giá hiện tại: ${data.current_price.toFixed(2)}`;
+  if (data.warnings && data.warnings.length) sub += " · ⚠ " + data.warnings.join("; ");
+  document.getElementById("repSubtitle").textContent = sub;
+
+  // metrics table
+  const body = document.getElementById("metricsBody");
+  body.innerHTML = data.metrics.map(m => `
+    <tr>
+      <td style="text-align:left">${m.horizon}</td>
+      <td>${fmtPct(m.expected_pct)}</td>
+      <td>${fmtPrice(m.expected_price)}</td>
+      <td>${fmtPct(m.lower_pct)}</td>
+      <td>${fmtPrice(m.lower_price)}</td>
+      <td>${fmtPct(m.upper_pct)}</td>
+      <td>${fmtPrice(m.upper_price)}</td>
+      <td class="${sigColor(m.significant)}">${m.hit_rate !== null ? fmtPctPlain(m.hit_rate) : "n/a"}${m.significant ? " *" : ""}</td>
+      <td>${m.baseline_hit_rate !== null ? fmtPctPlain(m.baseline_hit_rate) : "n/a"}</td>
+      <td>${m.p_value !== null ? m.p_value.toFixed(2) : "n/a"}</td>
+      <td>${m.n_samples}</td>
+    </tr>`).join("");
+
+  // rationale (chon 1 headline don gian dua tren p-value, giong logic _summarize_oot_html trong main.py)
+  let warnHorizon = null, sigPositive = null;
+  for (const m of data.metrics) {
+    if (m.significant && m.hit_rate !== null && m.hit_rate < 0.5 && warnHorizon === null) warnHorizon = m;
+    if (m.significant && m.hit_rate !== null && m.hit_rate > 0.5) {
+      if (sigPositive === null || m.hit_rate > sigPositive.hit_rate) sigPositive = m;
+    }
+  }
+  const rationaleBox = document.getElementById("rationaleBox");
+  rationaleBox.style.display = "block";
+  if (warnHorizon) {
+    rationaleBox.innerHTML = `<b class="neg">● KHÔNG ĐÁNG TIN ở ${warnHorizon.horizon} phiên — hit-rate ${fmtPctPlain(warnHorizon.hit_rate)} thấp hơn 50% có ý nghĩa thống kê (p=${warnHorizon.p_value.toFixed(2)})</b>`;
+  } else if (sigPositive) {
+    const dir = sigPositive.expected_pct > 0.3 ? "TĂNG" : (sigPositive.expected_pct < -0.3 ? "GIẢM" : "ĐI NGANG");
+    rationaleBox.innerHTML = `<b class="pos">● CÓ TÍN HIỆU ${dir} ở ${sigPositive.horizon} phiên — hit-rate ${fmtPctPlain(sigPositive.hit_rate)}, có ý nghĩa thống kê (p=${sigPositive.p_value.toFixed(2)})</b>`;
+  } else {
+    rationaleBox.innerHTML = `<b class="amber">● CHƯA ĐỦ BẰNG CHỨNG THỐNG KÊ — chưa phân biệt được với dự báo ngẫu nhiên ở mọi khung thời gian</b>`;
+  }
+  const peerTxt = data.peers_used && data.peers_used.length ? `gộp ${data.peers_used.length} mã cùng nhóm` : "chỉ dùng lịch sử riêng mã này";
+  rationaleBox.innerHTML += `<br><span class="muted">k=${data.calibrated_k} · ${peerTxt} · gộp ${data.n_folds_used} giai đoạn walk-forward.</span>`;
+
+  // classic scorecard
+  const classicBox = document.getElementById("classicBox");
+  classicBox.style.display = "block";
+  const vColor = data.classic_verdict === "Tích cực" ? "pos" : (data.classic_verdict === "Tiêu cực" ? "neg" : "amber");
+  const tags = data.classic_signals.map(s => {
+    const c = s.direction === "bullish" ? "pos" : (s.direction === "bearish" ? "neg" : "");
+    const arrow = s.direction === "bullish" ? "▲" : (s.direction === "bearish" ? "▼" : "•");
+    return `<span class="${c}">${arrow} ${s.name}</span>`;
+  }).join(" &nbsp;·&nbsp; ");
+  classicBox.innerHTML = `
+    <b class="${vColor}" style="font-size:14px">${data.classic_verdict}</b> &nbsp;·&nbsp; ${tags}<br>
+    <span style="font-size:12px">${data.classic_verdict_detail}</span><br>
+    <span class="muted">${data.classic_disclaimer}</span>`;
+
+  // chart
+  const img = document.getElementById("chartImg");
+  if (data.chart_png_base64) {
+    img.src = "data:image/png;base64," + data.chart_png_base64;
+    img.style.display = "block";
+  } else {
+    img.style.display = "none";
+  }
+}
+
+document.getElementById("btnAnalyze").onclick = async () => {
+  const symbol = document.getElementById("ticker").value.trim().toUpperCase();
+  if (!symbol) { alert("Vui lòng nhập mã cổ phiếu."); return; }
+  document.getElementById("repTitle").textContent = `Đang phân tích ${symbol}...`;
+  document.getElementById("repSubtitle").textContent = "(có thể mất vài giây do phải tính k-NN + calibrate)";
+  document.getElementById("rationaleBox").style.display = "none";
+  document.getElementById("classicBox").style.display = "none";
+  document.getElementById("btnAnalyze").disabled = true;
+  try {
+    const data = await apiGet(`/api/analyze/${symbol}`);
+    renderResult(data);
+  } catch (e) {
+    document.getElementById("repTitle").textContent = "Lỗi phân tích";
+    document.getElementById("repSubtitle").textContent = e.message;
+  } finally {
+    document.getElementById("btnAnalyze").disabled = false;
+  }
+};
+</script>
+</body>
+</html>
